@@ -8,6 +8,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
 const BRAPI_TOKEN = process.env.BRAPI_TOKEN;
+console.log("Meu token carregado é:",BRAPI_TOKEN);
 
 const bot = new TelegramBot(TOKEN, { polling: true });
 
@@ -67,9 +68,14 @@ async function iniciarApp() {
         }
 
         let resposta = "📋 *Ações sendo vigiadas pelo banco:*\n\n";
-        acoes.forEach((acao) => {
+        acoes.forEach((acao, index) => {
+            resposta += `${index +1}.📈 *${acao.ticker}*\n`
+            resposta += `Preço Base: R$ ${acao.precoBase}*\n;`
+
             const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
-            resposta += `📈 *${acao.ticker}*\nBase: R$ ${acao.precoBase} | Alvo: R$ ${precoAlvo.toFixed(2)}\n\n`;
+
+            resposta += `Alerta se cair para: R$ ${precoAlvo.toFixed(2)}*\n;`
+            
         });
 
         bot.sendMessage(chatId, resposta, { parse_mode: 'Markdown' });
