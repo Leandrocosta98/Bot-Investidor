@@ -119,5 +119,11 @@ async function iniciarApp() {
     setInterval(verificarWatchlist, 300000);
 }
 
+const http = require('http');
+http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Bot de Investimentos Online');
+}).listen(process.env.PORT || 3000);
+
 
 iniciarApp().catch(err => console.error("Erro ao iniciar bot:", err));
