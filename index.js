@@ -69,12 +69,12 @@ async function iniciarApp() {
 
         let resposta = "📋 *Ações sendo vigiadas pelo banco:*\n\n";
         acoes.forEach((acao, index) => {
-            resposta += `${index +1}.📈 *${acao.ticker}*\n`
-            resposta += `Preço Base: R$ ${acao.precoBase}*\n;`
+            resposta += `${index + 1}. 📈 *${acao.ticker}*\n`;
+            resposta += `💰 Preço Base: R$ ${acao.precoBase}\n`;
 
-            const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
+            const precoAlvo = acao.precoBase * (1 - acao.limiteQueda)
 
-            resposta += `Alerta se cair para: R$ ${precoAlvo.toFixed(2)}*\n;`
+            resposta +=`✅ Alerta se cair para: R$ ${precoAlvo.toFixed(2)}\n\n`;
             
         });
 
@@ -94,24 +94,27 @@ async function iniciarApp() {
 
         for (const acao of acoes) {
             try {
+                
                 const url = `https://brapi.dev/api/quote/${acao.ticker}?token=${BRAPI_TOKEN}`;
                 const res = await axios.get(url);
                 const precoAtual = res.data.results[0].regularMarketPrice;
 
                 const quedaReal = (acao.precoBase - precoAtual) / acao.precoBase;
+                const alvo = acao.precoBase * (1 - acao.limiteQueda);
 
-                if (quedaReal >= acao.limiteQueda) {
-                    bot.sendMessage(acao.chatId, `🚨 *OPORTUNIDADE*: *${acao.ticker}*\nA queda atingiu *${(quedaReal * 100).toFixed(2)}%!*\nPreço Atual: 💰 R$ ${precoAtual}`);
-                    
-                    
-                    await db.run(`DELETE FROM watchlist WHERE id = ?`, [acao.id]);
-                }
+               if (precoAtual <= alvo) {
+                const mensagem = `🚨 *ALERTA DE OPORTUNIDADE*: *${acao.ticker}*\n\nO preço caiu para *R$ ${precoAtual}*!\nLimite definido: R$ ${alvo.toFixed(2)}`;
+                
+                await bot.sendMessage(acao.chatId, mensagem, { parse_mode: 'Markdown' });
+                
+                await db.run(`DELETE FROM watchlist WHERE id = ?`, [acao.id]);
+                console.log(`✅ Alerta enviado para ${acao.ticker}`);
+            }
             } catch (e) {
-                console.log(`Erro ao checar ${acao.ticker}: ${e.message}`);
+                console.log(`❌ Erro ao checar ${acao.ticker}: ${e.message}`);
             }
         }
     }
-
 
     setInterval(verificarWatchlist, 300000);
 }
