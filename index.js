@@ -4,33 +4,26 @@ const path = require('path');
 const app = express();
 
 // 1. Configurações de leitura de dados e Sessão
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true}));
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'Previdencia-Garantida', 
+    secret: 'Previdencia-Garantida',
     resave: false,
     saveUninitialized: true
 }));
 
-const session = require('express-session');
+// 3. Rota de LOGIN (Precisa vir antes da proteção para você conseguir acessar a página de login!)
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
 
-app.use(session({
-    secret: 'chave-secreta-do-leandro', // Pode ser qualquer frase
-    resave: false,
-    saveUninitialized: true
-}));
-
-// O "Segurança" (Middleware)
-const requerLogin = (req, res, next) => {
-    if (req.session.logado) {
-        next(); // Se estiver logado, pode passar
+app.post('/login', (req, res) => {
+    const { usuario, senha } = req.body;
+    if (usuario === 'admin' && senha === '1234') {
+        req.session.logado = true;
+        res.redirect('/'); 
     } else {
-        res.redirect('/login.html'); // Se não, volta pro login
+        res.send('<h1>❌ Acesso Negado!</h1><a href="/login.html">Tentar novamente</a>');
     }
-};
-
-// PROTEJA A DASHBOARD: Adicione o 'requerLogin' aqui
-app.get('/', requerLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 2. Função de proteção
@@ -42,20 +35,7 @@ function verificarLogin(req, res, next) {
     }
 }
 
-// 3. Rota de LOGIN (Precisa vir antes da proteção para você conseguir acessar a página de login!)
-app.get('/login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
 
-aapp.post('/login', (req, res) => {
-    const { usuario, senha } = req.body;
-    if (usuario === process.env.WEB_USER && senha === process.env.WEB_PASS) {
-        req.session.logado = true; // CARIMBA O PASSAPORTE
-        res.redirect('/');
-    } else {
-        res.send('<h1>❌ Acesso Negado!</h1>');
-    }
-});
 
 // 4. Rota da DASHBOARD (Agora protegida)
 app.get('/', verificarLogin, (req, res) => {
@@ -65,8 +45,6 @@ app.get('/', verificarLogin, (req, res) => {
 // 5. Arquivos estáticos (CSS, imagens) - COLOCADOS POR ÚLTIMO
 // Isso impede que o index.html seja entregue automaticamente sem passar pelo verificarLogin
 app.use(express.static('public'));
-
-// --- DAQUI PARA BAIXO SEGUE O RESTANTE DO SEU CÓDIGO (BOT, SQLITE, ETC) ---
 
 require('dotenv').config();
 
