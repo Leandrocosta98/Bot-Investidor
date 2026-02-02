@@ -2,38 +2,75 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Investidor</title>
+    <title>Dashboard - Bot Investidor</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #121212;
-            color: white;
-            text-align: center;
-            padding-top: 50px;
-        }
-
-        .card {
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 10px;
-            display: inline-block;
-            border: 1px, solid, #333;
-        }
-
-        h1 {
-            color: #00ff88;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { color: #00ff88; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #00ff88; text-transform: uppercase; font-size: 12px; }
+        tr:hover { background: #252525; }
+        .status-up { color: #00ff88; font-weight: bold; }
+        .btn-refresh { background: #00ff88; color: #121212; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div clas="card">
-        <h1>
-            Painel de investimento
-        </h1>
-
-        <p>O servidor está vivo e pronto para a Missão</p>
+    <div class="container">
+        <h1>📊 Ativos Monitorados</h1>
+        <button class="btn-refresh" onclick="carregarDados()">🔄 Atualizar Painel</button>
+        
+        <table id="tabela-acoes">
+            <thead>
+                <tr>
+                    <th>Ticker</th>
+                    <th>Preço Base</th>
+                    <th>Alvo de Queda</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-tabela">
+                </tbody>
+        </table>
     </div>
-    
+
+    <script>
+        async function carregarDados() {
+            const tbody = document.getElementById('corpo-tabela');
+            tbody.innerHTML = "<tr><td colspan='4'>Carregando ativos...</td></tr>";
+
+            try {
+                const resposta = await fetch('/api/dados');
+                const dados = await resposta.json();
+
+                tbody.innerHTML = ""; // Limpa a mensagem de carregando
+
+                if (dados.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='4'>Nenhum ativo sendo monitorado no momento.</td></tr>";
+                    return;
+                }
+
+                dados.forEach(acao => {
+                    const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
+                    const row = `
+                        <tr>
+                            <td><strong>${acao.ticker}</strong></td>
+                            <td>R$ ${acao.precoBase.toFixed(2)}</td>
+                            <td>R$ ${precoAlvo.toFixed(2)} (-${acao.limiteQueda * 100}%)</td>
+                            <td class="status-up">Ativo 📡</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                tbody.innerHTML = "<tr><td colspan='4'>Erro ao carregar dados.</td></tr>";
+            }
+        }
+
+        // Carrega os dados assim que a página abre
+        carregarDados();
+        // Atualiza automaticamente a cada 30 segundos
+        setInterval(carregarDados, 30000);
+    </script>
 </body>
 </html>

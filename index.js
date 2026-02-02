@@ -10,7 +10,6 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 
-// 1. Configurações de leitura de dados e Sessão
 app.use(express.urlencoded({ extended: true}));
 app.use(session({
     secret: 'Previdencia-Garantida',
@@ -18,7 +17,6 @@ app.use(session({
     saveUninitialized: true
 }));
 
-// 3. Rota de LOGIN (Precisa vir antes da proteção para você conseguir acessar a página de login!)
 app.get('/login.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -33,24 +31,18 @@ app.post('/login', (req, res) => {
     }
 });
 
-// 2. Função de proteção
 function verificarLogin(req, res, next) {
     if (req.session.logado) {
-        return next(); // Se estiver logado, segue o baile
+        return next();
     } else {
-        res.redirect('/login.html'); // Se não, chute para o login
+        res.redirect('/login.html');
     }
-}
+};
 
-
-
-// 4. Rota da DASHBOARD (Agora protegida)
 app.get('/', verificarLogin, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 5. Arquivos estáticos (CSS, imagens) - COLOCADOS POR ÚLTIMO
-// Isso impede que o index.html seja entregue automaticamente sem passar pelo verificarLogin
 app.use(express.static('public'));
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
@@ -164,18 +156,34 @@ async function iniciarApp() {
     }
 
     setInterval(verificarWatchlist, 300000);
-}
+};
+
+app.get('/api/dados', verificarLogin, async (req, res) => {
+    try {
+        const db = await open({ filename: './database.db', driver: sqlite3.Database });
+        const acoes = await db.all(`SELECT * FROM watchlist`);
+        res.json(acoes);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao acessar o banco de dados" });
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 app.post('/login', (req, res) => {
     const { usuario, senha } = req.body;
 
     if (usuario === 'admin' && senha === '1234') {
-        req.session.logado = true; // Damos o carimbo aqui!
+        req.session.logado = true;
         res.redirect('/'); 
     } else {
         res.send('<h1>❌ Acesso Negado!</h1><a href="/login.html">Tentar novamente</a>');
     }
+});
+
+app.get('/api/dados', verificarLogin, async (req, res) => {
+    const db = await open({ filename: './database.db', driver: sqlite3.Database });
+    const acoes = await db.all(`SELECT * FROM watchlist`);
+    res.json(acoes);
 });
 
 app.listen(PORT,() => {
