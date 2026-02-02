@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Investidor</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif;
+            background: #121212;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        };
+
+        .login-card { 
+            background: #1e1e1e;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 300px;
+        };
+
+        h2 { 
+            color: #00ff88;
+            margin-bottom: 20px;
+        };
+
+        input { 
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #252525;
+            color: white;
+            box-sizing: border-box;
+        };
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #00ff88;
+            border: none;
+            border-radius: 6px;
+            color: #121212;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        };
+
+        button:hover {
+            background: #00cc6e;
+        };
+        
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Acesso Restrito</h2>
+        <form action="/login" method="POST">
+            <input type="text" name="usuario" placeholder="Usuário" required>
+            <input type="password" name="senha" placeholder="Senha" required>
+            <button type="submit">Entrar no Painel</button>
+        </form>
+    </div>
+</body>
+</html>

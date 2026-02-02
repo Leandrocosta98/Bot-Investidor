@@ -1,3 +1,51 @@
+const session = require('express-session');
+const express = require('express');
+const path = require('path');
+const app = express();
+
+// 1. Configurações de leitura de dados e Sessão
+app.use(express.urlencoded({ extended: true }));
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'Previdencia-Garantida', 
+    resave: false,
+    saveUninitialized: true
+}));
+
+// 2. Função de proteção
+function verificarLogin(req, res, next) {
+    if (req.session.logado) {
+        return next(); // Se estiver logado, segue o baile
+    } else {
+        res.redirect('/login.html'); // Se não, chute para o login
+    }
+}
+
+// 3. Rota de LOGIN (Precisa vir antes da proteção para você conseguir acessar a página de login!)
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.post('/login', (req, res) => {
+    const { usuario, senha } = req.body;
+    if (usuario === 'admin' && senha === '1234') {
+        req.session.logado = true;
+        res.redirect('/'); 
+    } else {
+        res.send('<h1>❌ Acesso Negado!</h1><a href="/login.html">Tentar novamente</a>');
+    }
+});
+
+// 4. Rota da DASHBOARD (Agora protegida)
+app.get('/', verificarLogin, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 5. Arquivos estáticos (CSS, imagens) - COLOCADOS POR ÚLTIMO
+// Isso impede que o index.html seja entregue automaticamente sem passar pelo verificarLogin
+app.use(express.static('public'));
+
+// --- DAQUI PARA BAIXO SEGUE O RESTANTE DO SEU CÓDIGO (BOT, SQLITE, ETC) ---
+
 require('dotenv').config();
 
 const sqlite3 = require('sqlite3');
@@ -119,11 +167,22 @@ async function iniciarApp() {
     setInterval(verificarWatchlist, 300000);
 }
 
-const http = require('http');
-http.createServer((req, res) => {
-    res.writeHead(200);
-    res.end('Bot de Investimentos Online');
-}).listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+app.post('/login', (req, res) => {
+    const { usuario, senha } = req.body;
+
+    if (usuario === 'admin' && senha === '1234') {
+        req.session.logado = true; // Damos o carimbo aqui!
+        res.redirect('/'); 
+    } else {
+        res.send('<h1>❌ Acesso Negado!</h1><a href="/login.html">Tentar novamente</a>');
+    }
+});
+
+app.listen(PORT,() => {
+    console.log(`Site rodando na porta ${PORT}`);
+});
+
 
 
 iniciarApp().catch(err => console.error("Erro ao iniciar bot:", err));
