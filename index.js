@@ -1,6 +1,13 @@
+require('dotenv').config();
+
 const session = require('express-session');
 const express = require('express');
 const path = require('path');
+const sqlite3 = require('sqlite3');
+const { open } = require('sqlite');
+const axios = require('axios');
+const TelegramBot = require('node-telegram-bot-api');
+
 const app = express();
 
 // 1. Configurações de leitura de dados e Sessão
@@ -45,14 +52,6 @@ app.get('/', verificarLogin, (req, res) => {
 // 5. Arquivos estáticos (CSS, imagens) - COLOCADOS POR ÚLTIMO
 // Isso impede que o index.html seja entregue automaticamente sem passar pelo verificarLogin
 app.use(express.static('public'));
-
-require('dotenv').config();
-
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
-const axios = require('axios');
-const TelegramBot = require('node-telegram-bot-api');
-
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
 const BRAPI_TOKEN = process.env.BRAPI_TOKEN;
