@@ -43,7 +43,7 @@
                 const resposta = await fetch('/api/dados');
                 const dados = await resposta.json();
 
-                tbody.innerHTML = ""; // Limpa a mensagem de carregando
+                tbody.innerHTML = "";
 
                 if (dados.length === 0) {
                     tbody.innerHTML = "<tr><td colspan='4'>Nenhum ativo sendo monitorado no momento.</td></tr>";
