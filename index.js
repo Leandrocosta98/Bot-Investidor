@@ -11,6 +11,28 @@ app.use(session({
     saveUninitialized: true
 }));
 
+const session = require('express-session');
+
+app.use(session({
+    secret: 'chave-secreta-do-leandro', // Pode ser qualquer frase
+    resave: false,
+    saveUninitialized: true
+}));
+
+// O "Segurança" (Middleware)
+const requerLogin = (req, res, next) => {
+    if (req.session.logado) {
+        next(); // Se estiver logado, pode passar
+    } else {
+        res.redirect('/login.html'); // Se não, volta pro login
+    }
+};
+
+// PROTEJA A DASHBOARD: Adicione o 'requerLogin' aqui
+app.get('/', requerLogin, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // 2. Função de proteção
 function verificarLogin(req, res, next) {
     if (req.session.logado) {
@@ -25,13 +47,13 @@ app.get('/login.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.post('/login', (req, res) => {
+aapp.post('/login', (req, res) => {
     const { usuario, senha } = req.body;
-    if (usuario === 'admin' && senha === '1234') {
-        req.session.logado = true;
-        res.redirect('/'); 
+    if (usuario === process.env.WEB_USER && senha === process.env.WEB_PASS) {
+        req.session.logado = true; // CARIMBA O PASSAPORTE
+        res.redirect('/');
     } else {
-        res.send('<h1>❌ Acesso Negado!</h1><a href="/login.html">Tentar novamente</a>');
+        res.send('<h1>❌ Acesso Negado!</h1>');
     }
 });
 
