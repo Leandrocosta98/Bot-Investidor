@@ -1,0 +1,13 @@
+# Dependências (Pasta muito pesada)
+node_modules/
+
+# Variáveis locais (Nunca devem subir)
+.env
+
+# Banco de dados local (Para não sobrescrever o do Render)
+*.db
+*.db-journal
+
+# Logs e arquivos de sistema
+npm-debug.log*
+.DS_Store
