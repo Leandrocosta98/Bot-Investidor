@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Controle - Bot Investidor</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="data:,">
+
+    <div class="chart-container" style="position: relative; height:40vh; width:80vw; margin: auto;">
+    <canvas id="meuGrafico"></canvas>
+    </div>
+
 </head>
 <body>
     <div class="container">
@@ -27,64 +34,124 @@
     </div>
 
     <script>
-        // 1. Função para carregar os dados do banco
-        async function carregarDados() {
-            const tbody = document.getElementById('corpo-tabela');
-            tbody.innerHTML = "<tr><td colspan='4'>Carregando...</td></tr>";
+    // 1. Variável global para controlar a instância do gráfico
+    let chartInstancia = null;
 
-            try {
-                const resposta = await fetch('/api/dados');
-                const dados = await resposta.json();
-
-                tbody.innerHTML = ""; // Limpa a tabela
-
-                if (dados.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='4'>Nenhum ativo sendo monitorado.</td></tr>";
-                    return;
-                }
-
-                dados.forEach(acao => {
-                    const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
-                    const row = `
-                        <tr>
-                            <td><strong>${acao.ticker}</strong></td>
-                            <td>R$ ${acao.precoBase.toFixed(2)}</td>
-                            <td>R$ ${precoAlvo.toFixed(2)} (${(acao.limiteQueda * 100).toFixed(0)}%)</td>
-                            <td>
-                                <button class="btn-delete" onclick="deletarAtivo(${acao.id})">🗑️</button>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            } catch (error) {
-                tbody.innerHTML = "<tr><td colspan='4'>Erro ao carregar dados.</td></tr>";
+    // 2. Função para carregar o gráfico (Global)
+    async function carregarGrafico(ticker) {
+        console.log("Chamando gráfico para:", ticker);
+        try {
+            const res = await fetch(`/api/historico/${ticker}`);
+            const data = await res.json();
+            
+            if (!data.results || !data.results[0].historicalDataPrice) {
+                alert("Dados históricos não encontrados para este ativo.");
+                return;
             }
-        }
 
-        // 2. Nova Função para Deletar um Ativo
-        async function deletarAtivo(id) {
-            if (confirm("Tem certeza que deseja remover este ticker do monitoramento?")) {
-                try {
-                    const resposta = await fetch(`/api/deletar/${id}`, {
-                        method: 'DELETE'
-                    });
+            const historico = data.results[0].historicalDataPrice;
+            // Formata as datas para DD/MM
+            const labels = historico.map(d => {
+                const dataObj = new Date(d.date * 1000);
+                return dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            });
+            const precos = historico.map(d => d.close);
 
-                    if (resposta.ok) {
-                        // Se deu certo no servidor, recarrega a tabela na hora
-                        carregarDados();
-                    } else {
-                        alert("Erro ao tentar excluir o ativo.");
+            const ctx = document.getElementById('meuGrafico').getContext('2d');
+            
+            // Destrói o gráfico anterior antes de criar um novo
+            if (chartInstancia) { 
+                chartInstancia.destroy(); 
+            }
+
+            chartInstancia = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `Preço de Fechamento - ${ticker}`,
+                        data: precos,
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: false }
                     }
-                } catch (error) {
-                    console.error("Erro na requisição:", error);
-                    alert("Erro de conexão com o servidor.");
                 }
-            }
+            });
+        } catch (e) {
+            console.error("Erro ao carregar gráfico:", e);
         }
+    }
 
-        // Inicia a tabela assim que abre a página
-        carregarDados();
-    </script>
+    // 3. Função para carregar os dados da tabela
+    async function carregarDados() {
+        const tbody = document.getElementById('corpo-tabela');
+        if (!tbody) return;
+
+        try {
+            const resposta = await fetch('/api/dados');
+            const dados = await resposta.json();
+
+            tbody.innerHTML = ""; // Limpa a tabela
+
+            if (dados.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='4'>Nenhum ativo monitorado.</td></tr>";
+                return;
+            }
+
+            // Loop para criar as linhas da tabela
+            dados.forEach(acao => {
+                const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
+                const row = `
+                    <tr>
+                        <td>
+                            <strong 
+                                onclick="carregarGrafico('${acao.ticker}')" 
+                                style="cursor:pointer; color:#3498db; text-decoration:underline;"
+                                title="Clique para ver o gráfico"
+                            >
+                                ${acao.ticker}
+                            </strong>
+                        </td>
+                        <td>R$ ${acao.precoBase.toFixed(2)}</td>
+                        <td>R$ ${precoAlvo.toFixed(2)} (${(acao.limiteQueda * 100).toFixed(0)}%)</td>
+                        <td>
+                            <button class="btn-delete" onclick="deletarAtivo(${acao.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+
+            // Opcional: Carregar o gráfico da primeira ação da lista automaticamente
+            if (dados.length > 0) {
+                carregarGrafico(dados[0].ticker);
+            }
+
+        } catch (error) {
+            console.error("Erro ao carregar tabela:", error);
+        }
+    }
+
+    // 4. Função para deletar ativo (Precisa estar aqui também)
+    async function deletarAtivo(id) {
+        if (confirm("Deseja remover este ativo?")) {
+            const res = await fetch(`/api/deletar/${id}`, { method: 'DELETE' });
+            if (res.ok) carregarDados();
+        }
+    }
+
+    // Inicializa tudo quando a página carregar
+    window.onload = carregarDados;
+</script>
 </body>
 </html>

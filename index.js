@@ -197,6 +197,20 @@ app.get('/api/dados', verificarLogin, async (req, res) => {
     res.json(acoes);
 });
 
+app.get('/api/historico/:ticker', verificarLogin, async (req, res) => {
+    const { ticker } = req.params;
+    try {
+        // Usamos o seu token que já está salvo nas variáveis de ambiente do Render
+        const url = `https://brapi.dev/api/quote/${ticker}?range=7d&interval=1d&token=${process.env.BRAPI_TOKEN}`;
+        const resposta = await fetch(url);
+        const dados = await resposta.json();
+        res.json(dados);
+    } catch (error) {
+        console.error("Erro na BRAPI:", error);
+        res.status(500).json({ erro: "Erro ao buscar histórico" });
+    }
+});
+
 app.delete('/api/deletar/:id', verificarLogin, async (req, res) => {
     const { id } = req.params;
     try {
@@ -207,6 +221,70 @@ app.delete('/api/deletar/:id', verificarLogin, async (req, res) => {
         res.status(500).json({ erro: "Erro ao deletar ativo" });
     }
 });
+
+let chartInstancia = null; // Para podermos destruir e recriar o gráfico
+
+async function carregarGrafico(ticker) {
+    console.logf("Iniciando Carregamento do gráfico para: "), ticker;
+    try {
+        // MUDANÇA AQUI: Chamamos a nossa rota interna /api/historico/
+        const res = await fetch(`/api/historico/${ticker}`);
+        const data = await res.json();
+        
+        // Verificação de segurança caso a API não retorne dados
+        if (!data.results || !data.results[0].historicalDataPrice) {
+            console.error("Dados históricos não encontrados para:", ticker);
+            return;
+        }
+
+        const historico = data.results[0].historicalDataPrice;
+        
+        // Formata as datas para ficarem bonitas no gráfico (ex: 15/05)
+        const labels = historico.map(d => {
+            const dataObj = new Date(d.date * 1000);
+            return dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        });
+        
+        const precos = historico.map(d => d.close);
+
+        const ctx = document.getElementById('meuGrafico').getContext('2d');
+        
+        // Se já existe um gráfico, a gente apaga para criar o novo (evita sobreposição)
+        if (typeof chartInstancia !== 'undefined' && chartInstancia !== null) { 
+            chartInstancia.destroy(); 
+        }
+
+        // Criando o gráfico usando Chart.js
+        chartInstancia = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: `Preço de Fechamento - ${ticker}`,
+                    data: precos,
+                    borderColor: '#2ecc71', // Verde suave
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.4 // Deixa a linha curvada e elegante
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                },
+                scales: {
+                    y: { beginAtZero: false } // Gráfico de ações não deve começar no zero
+                }
+            }
+        });
+    } catch (e) {
+        console.error("Erro ao carregar gráfico:", e);
+    }
+}
 
 app.listen(PORT,() => {
     console.log(`Site rodando na porta ${PORT}`);
