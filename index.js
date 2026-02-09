@@ -40,7 +40,7 @@ function verificarLogin(req, res, next) {
 };
 
 app.get('/', verificarLogin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 app.use(express.static('public'));
@@ -168,6 +168,17 @@ app.get('/api/dados', verificarLogin, async (req, res) => {
     }
 });
 
+async function deletarAtivo(id) {
+    if (confirm("Deseja realmente parar de monitorar este ativo?")) {
+        const resposta = await fetch (`/api/deletar${id}`, { method: 'DELETE'});
+        if (resposta.ok) {
+            carregarDados(); //Atualizar a tabela na hora!
+        } else {
+            alert("Erro ao deletar.");
+        }
+    }
+}
+
 const PORT = process.env.PORT || 3000;
 app.post('/login', (req, res) => {
     const { usuario, senha } = req.body;
@@ -184,6 +195,17 @@ app.get('/api/dados', verificarLogin, async (req, res) => {
     const db = await open({ filename: './database.db', driver: sqlite3.Database });
     const acoes = await db.all(`SELECT * FROM watchlist`);
     res.json(acoes);
+});
+
+app.delete('/api/deletar/:id', verificarLogin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const db = await open({ filename: './database.db', driver: sqlite3.Database });
+        await db.run(`DELETE FROM watchlist WHERE id = ?`, [id]);
+        res.json({ mensagem: "Ativo removido com sucesso!" });
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao deletar ativo" });
+    }
 });
 
 app.listen(PORT,() => {

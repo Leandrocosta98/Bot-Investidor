@@ -96,3 +96,18 @@ button {
 button:hover {
     background: #00cc6e;
 };
+
+.btn-delete {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.btn-delete:hover {
+    background-color: #cc0000;
+}

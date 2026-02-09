@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - Bot Investidor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Ativos Monitorados</h1>
+            <button class="btn-refresh" onclick="carregarDados()">🔄 Atualizar</button>
+        </header>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticker</th>
+                    <th>Preço Base</th>
+                    <th>Alvo (-%)</th>
+                    <th>Ações</th> </tr>
+            </thead>
+            <tbody id="corpo-tabela">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 1. Função para carregar os dados do banco
+        async function carregarDados() {
+            const tbody = document.getElementById('corpo-tabela');
+            tbody.innerHTML = "<tr><td colspan='4'>Carregando...</td></tr>";
+
+            try {
+                const resposta = await fetch('/api/dados');
+                const dados = await resposta.json();
+
+                tbody.innerHTML = ""; // Limpa a tabela
+
+                if (dados.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='4'>Nenhum ativo sendo monitorado.</td></tr>";
+                    return;
+                }
+
+                dados.forEach(acao => {
+                    const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
+                    const row = `
+                        <tr>
+                            <td><strong>${acao.ticker}</strong></td>
+                            <td>R$ ${acao.precoBase.toFixed(2)}</td>
+                            <td>R$ ${precoAlvo.toFixed(2)} (${(acao.limiteQueda * 100).toFixed(0)}%)</td>
+                            <td>
+                                <button class="btn-delete" onclick="deletarAtivo(${acao.id})">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                tbody.innerHTML = "<tr><td colspan='4'>Erro ao carregar dados.</td></tr>";
+            }
+        }
+
+        // 2. Nova Função para Deletar um Ativo
+        async function deletarAtivo(id) {
+            if (confirm("Tem certeza que deseja remover este ticker do monitoramento?")) {
+                try {
+                    const resposta = await fetch(`/api/deletar/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (resposta.ok) {
+                        // Se deu certo no servidor, recarrega a tabela na hora
+                        carregarDados();
+                    } else {
+                        alert("Erro ao tentar excluir o ativo.");
+                    }
+                } catch (error) {
+                    console.error("Erro na requisição:", error);
+                    alert("Erro de conexão com o servidor.");
+                }
+            }
+        }
+
+        // Inicia a tabela assim que abre a página
+        carregarDados();
+    </script>
+</body>
+</html>
