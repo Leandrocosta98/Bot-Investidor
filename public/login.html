@@ -3,17 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>Login - Investidor</title>
-    <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="login.css">
+    <script src="login.js"></script>
     
 </head>
 <body>
     <div class="login-card">
-        <h2>Acesso Restrito</h2>
-        <form action="/login" method="POST">
-            <input type="text" name="usuario" placeholder="Usuário" required>
-            <input type="password" name="senha" placeholder="Senha" required>
-            <button type="submit">Entrar no Painel</button>
+        <h2>Bot<span>Investidor</span></h2>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="email" placeholder="Seu E-mail" required>
+            </div>
+
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" placeholder="Sua Senha"required>
+            </div>
+
+            <button type="submit">Entrar</button>
         </form>
+
+        <div class="footer-links">Não tem conta ainda?<br><a href="/cadastro">Cadastre-se</a></div>
     </div>
 </body>
 </html>
