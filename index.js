@@ -6,30 +6,28 @@ const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
-const bcrypt = require('bcrypt'); // Essencial para as senhas
+const bcrypt = require('bcrypt');
 
 const app = express();
 
 // --- CONFIGURAÇÕES ---
-app.use(express.json()); // Para aceitar JSON no corpo das requisições
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
- 
 
 app.use(session({
-    name: 'sessao_bot', // Nome personalizado para o cookie
+    name: 'sessao_bot',
     secret: 'Previdencia-Garantida-2024',
-    resave: true, // Força a gravar a sessão mesmo sem modificação
-    saveUninitialized: true, // Força a criar uma sessão nova
+    resave: false,
+    saveUninitialized: false,
     cookie: { 
-        secure: false, // Obrigatório como false para localhost (sem HTTPS)
-        sameSite: 'lax',
+        secure: false, // Mantenha false para HTTP (Render/Localhost). Mude para true se usar HTTPS.
         maxAge: 1000 * 60 * 60 * 24 // 24 horas
     }
 }));
 
-app.use(express.static('public')); // Serve os arquivos da pasta public (HTML, CSS, JS)
+app.use(express.static('public'));
 
-// --- FUNÇÕES AUXILIARES ---
+// --- BANCO DE DADOS ---
 async function openDb() {
     return open({
         filename: './database.db',
@@ -37,10 +35,14 @@ async function openDb() {
     });
 }
 
-// Middleware para proteger as rotas
+// Middleware de Proteção
 function verificarLogin(req, res, next) {
-    if (req.session.usuarioId) {
+    if (req.session && req.session.usuarioId) {
         return next();
+    }
+    // Se for uma requisição de API, envia erro 401. Se for navegação, redireciona.
+    if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ erro: "Não autorizado" });
     }
     res.redirect('/login');
 }
@@ -52,7 +54,6 @@ app.get('/', verificarLogin, (req, res) => res.sendFile(path.join(__dirname, 'pu
 
 // --- API DE AUTENTICAÇÃO ---
 
-// Rota de Cadastro
 app.post('/api/cadastro', async (req, res) => {
     const { nome, email, senha } = req.body;
     try {
@@ -65,7 +66,6 @@ app.post('/api/cadastro', async (req, res) => {
     }
 });
 
-// Rota de Login
 app.post('/api/login', async (req, res) => {
     const { email, senha } = req.body;
     try {
@@ -83,8 +83,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-
-// Logout
 app.get('/api/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/login');
@@ -92,30 +90,45 @@ app.get('/api/logout', (req, res) => {
 
 // --- API DE DADOS (DASHBOARD) ---
 
-// Rota para o nome do usuário
 app.get('/api/dados-usuario', (req, res) => {
-    if (req.session && req.session.usuarioNome) {
+    if (req.session.usuarioNome) {
         res.json({ nome: req.session.usuarioNome });
     } else {
         res.status(401).json({ erro: "Não logado" });
     }
 });
 
-// Rota para a lista de dados
-app.get('/api/dados', async (req, res) => {
+// LISTAR APENAS OS ATIVOS DO USUÁRIO LOGADO
+app.get('/api/dados', verificarLogin, async (req, res) => {
     try {
         const db = await openDb();
-        const acoes = await db.all(`SELECT * FROM watchlist ORDER BY id DESC`);
-        res.json(acoes); // Garante que SEMPRE envia um JSON, mesmo que seja []
+        const userId = req.session.usuarioId;
+        // Filtro essencial para privacidade entre usuários
+        const acoes = await db.all(`SELECT * FROM watchlist WHERE usuario_id = ? ORDER BY id DESC`, [userId]);
+        res.json(acoes);
     } catch (error) {
-        console.error("Erro na rota /api/dados:", error);
         res.status(500).json({ erro: "Erro no banco de dados" });
     }
 });
+
+// DELETAR APENAS SE FOR DONO DO ATIVO
+app.delete('/api/deletar/:id', verificarLogin, async (req, res) => {
+    try {
+        const db = await openDb();
+        const userId = req.session.usuarioId;
+        // O WHERE id AND usuario_id garante que ninguém delete o ativo de outro
+        await db.run(`DELETE FROM watchlist WHERE id = ? AND usuario_id = ?`, [req.params.id, userId]);
+        res.json({ mensagem: "Removido!" });
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao deletar." });
+    }
+});
+
 app.get('/api/historico/:ticker', verificarLogin, async (req, res) => {
     const { ticker } = req.params;
+    const range = req.query.range || '7d';
     try {
-        const url = `https://brapi.dev/api/quote/${ticker}?range=7d&interval=1d&token=${process.env.BRAPI_TOKEN}`;
+        const url = `https://brapi.dev/api/quote/${ticker}?range=${range}&token=${process.env.BRAPI_TOKEN}`;
         const resposta = await axios.get(url);
         res.json(resposta.data);
     } catch (error) {
@@ -123,31 +136,20 @@ app.get('/api/historico/:ticker', verificarLogin, async (req, res) => {
     }
 });
 
-app.delete('/api/deletar/:id', async (req, res) => {
-    try {
-        const db = await openDb();
-        await db.run(`DELETE FROM watchlist WHERE id = ?`, [req.params.id]);
-        res.json({ mensagem: "Removido!" });
-    } catch (error) {
-        res.status(500).json({ erro: "Erro ao deletar." });
-    }
-});
-
-// --- BOT TELEGRAM E BANCO ---
-const TOKEN = process.env.TELEGRAM_TOKEN;
-const BRAPI_TOKEN = process.env.BRAPI_TOKEN;
-const bot = new TelegramBot(TOKEN, { polling: true });
+// --- BOT TELEGRAM E INICIALIZAÇÃO ---
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
 async function iniciarApp() {
     const db = await openDb();
 
-    // Criando Tabelas
+    // 1. Criar Tabelas
     await db.exec(`
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT,
             email TEXT UNIQUE,
-            senha TEXT
+            senha TEXT,
+            telegram_chat_id TEXT
         );
         CREATE TABLE IF NOT EXISTS watchlist (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,76 +162,118 @@ async function iniciarApp() {
         );
     `);
 
-    console.log("✅ Banco e Tabelas prontos!");
+    // 2. Garante que a coluna de vínculo existe
+    try {
+        await db.run("ALTER TABLE usuarios ADD COLUMN telegram_chat_id TEXT");
+    } catch (e) { /* Coluna já existe */ }
 
-    // Comando /monitorar detalhado
+    console.log("✅ Banco de dados pronto!");
+
+    // --- COMANDOS DO BOT ---
+
+    // 1. MONITORAR (Individual e Tagarela)
     bot.onText(/\/monitorar (.+) (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;
         const ticker = match[1].toUpperCase();
         const quedaAlvo = parseFloat(match[2]);
 
-        bot.sendMessage(chatId, `🔍 Buscando preço atual de ${ticker}...`);
-
         try {
-            const url = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
+            const db = await openDb();
+            const usuario = await db.get("SELECT id, nome FROM usuarios WHERE telegram_chat_id = ?", [chatId]);
+
+            if (!usuario) {
+                return bot.sendMessage(chatId, `⚠️ *Atenção!*\n\nSeu Telegram não está vinculado.\n👉 Digite: \`/vincular seu@email.com\``, { parse_mode: 'Markdown' });
+            }
+
+            bot.sendMessage(chatId, `🔍 *Buscando cotação de ${ticker}...*`, { parse_mode: 'Markdown' });
+
+            const url = `https://brapi.dev/api/quote/${ticker}?token=${process.env.BRAPI_TOKEN}`;
             const res = await axios.get(url);
+            
+            if (!res.data.results || res.data.results.length === 0) throw new Error();
+
             const precoBase = res.data.results[0].regularMarketPrice;
             const precoAlvo = precoBase * (1 - (quedaAlvo / 100));
 
             await db.run(
-            `INSERT INTO watchlist (chatId, ticker, precoBase, limiteQueda) VALUES (?, ?, ?, ?)`,
-            [chatId, ticker, precoBase, quedaAlvo / 100]
+                `INSERT INTO watchlist (chatId, ticker, precoBase, limiteQueda, usuario_id) VALUES (?, ?, ?, ?, ?)`,
+                [chatId, ticker, precoBase, quedaAlvo / 100, usuario.id]
             );
 
-            bot.sendMessage(chatId, `✅ Monitorando ${ticker}!\n💰 Preço base: R$ ${precoBase.toFixed(2)}\n📉 Alerta em: R$ ${precoAlvo.toFixed(2)} (-${quedaAlvo}%)`);
+            bot.sendMessage(chatId, `✅ *Monitoramento Ativado para ${usuario.nome}!*\n\n📈 *Ativo:* ${ticker}\n💰 *Preço Atual:* R$ ${precoBase.toFixed(2)}\n🚨 *Alerta em:* R$ ${precoAlvo.toFixed(2)} (-${quedaAlvo}%)\n\n_Vou te avisar assim que cair!_ 🚀`, { parse_mode: 'Markdown' });
 
-        } 
-        catch (error) {
-            bot.sendMessage(chatId, `❌ Erro: Não encontrei a ação ${ticker}.`);
+        } catch (error) {
+            bot.sendMessage(chatId, `❌ *Erro:* Não encontrei a ação *${ticker}*.`);
         }
     });
 
-    // Comando /lista detalhado
+    // 2. LISTA (Individual)
     bot.onText(/\/lista/, async (msg) => {
         const chatId = msg.chat.id;
-        const acoes = await db.all(`SELECT * FROM watchlist WHERE chatId = ?`, [chatId]);
+        try {
+            const db = await openDb();
+            const usuario = await db.get("SELECT id, nome FROM usuarios WHERE telegram_chat_id = ?", [chatId]);
 
-        if (acoes.length === 0) {
-            bot.sendMessage(chatId, "📋 Sua lista de monitoramento está vazia.");
-            return;
-        }
+            if (!usuario) return bot.sendMessage(chatId, "⚠️ Vincule sua conta primeiro!");
 
-        let resposta = "📋 *Ações em Vigilância:*\n\n";
-        acoes.forEach((acao) => {
-            const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
-            resposta += `📈 *${acao.ticker}*\n`;
-            resposta += `💰 Base: R$ ${acao.precoBase.toFixed(2)}\n`;
-            resposta += `🚨 Alerta: R$ ${precoAlvo.toFixed(2)}\n\n`;
-        });
+            const acoes = await db.all(`SELECT * FROM watchlist WHERE usuario_id = ?`, [usuario.id]);
 
-     bot.sendMessage(chatId, resposta, { parse_mode: 'Markdown' });
+            if (acoes.length === 0) return bot.sendMessage(chatId, `📋 *${usuario.nome}*, sua lista está vazia.`, { parse_mode: 'Markdown' });
+
+            let resposta = `📋 *Carteira de: ${usuario.nome}*\n━━━━━━━━━━━━━━━\n\n`;
+            acoes.forEach(acao => {
+                const alvo = acao.precoBase * (1 - acao.limiteQueda);
+                resposta += `📈 *${acao.ticker}*\n💰 Base: R$ ${acao.precoBase.toFixed(2)}\n🚨 Alerta: R$ ${alvo.toFixed(2)}\n┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n`;
+            });
+            bot.sendMessage(chatId, resposta, { parse_mode: 'Markdown' });
+        } catch (e) { bot.sendMessage(chatId, "❌ Erro ao carregar lista."); }
     });
 
-    // Verificação periódica
+    // 3. VINCULAR
+    bot.onText(/\/vincular (.+)/, async (msg, match) => {
+        const chatId = msg.chat.id;
+        const email = match[1].toLowerCase().trim();
+        try {
+            const db = await openDb();
+            const usuario = await db.get("SELECT id, nome FROM usuarios WHERE email = ?", [email]);
+            if (usuario) {
+                await db.run("UPDATE usuarios SET telegram_chat_id = ? WHERE id = ?", [chatId, usuario.id]);
+                bot.sendMessage(chatId, `✅ *Conta Vinculada!* Olá *${usuario.nome}*!`, { parse_mode: 'Markdown' });
+            } else {
+                bot.sendMessage(chatId, "❌ E-mail não encontrado no site.");
+            }
+        } catch (e) { bot.sendMessage(chatId, "❌ Erro ao vincular."); }
+    });
+
+    // 4. LIMPAR
+    bot.onText(/\/limpar/, async (msg) => {
+        const chatId = msg.chat.id;
+        try {
+            await db.run(`DELETE FROM watchlist WHERE chatId = ?`, [chatId]);
+            bot.sendMessage(chatId, "🗑️ *Lista limpa com sucesso!*", { parse_mode: 'Markdown' });
+        } catch (e) { bot.sendMessage(chatId, "❌ Erro ao limpar."); }
+    });
+
+    // Verificação periódica de preços
     setInterval(async () => {
         const acoes = await db.all(`SELECT * FROM watchlist`);
         for (const acao of acoes) {
             try {
-                const url = `https://brapi.dev/api/quote/${acao.ticker}?token=${BRAPI_TOKEN}`;
+                const url = `https://brapi.dev/api/quote/${acao.ticker}?token=${process.env.BRAPI_TOKEN}`;
                 const res = await axios.get(url);
                 const precoAtual = res.data.results[0].regularMarketPrice;
                 const alvo = acao.precoBase * (1 - acao.limiteQueda);
 
-                if (precoAtual <= alvo) {
-                    bot.sendMessage(acao.chatId, `🚨 OPORTUNIDADE: ${acao.ticker} baixou para R$ ${precoAtual}`);
+                if (precoAtual <= alvo && acao.chatId) {
+                    bot.sendMessage(acao.chatId, `🚨 *OPORTUNIDADE:* ${acao.ticker} caiu para R$ ${precoAtual}!`, { parse_mode: 'Markdown' });
                     await db.run(`DELETE FROM watchlist WHERE id = ?`, [acao.id]);
                 }
             } catch (e) { console.log("Erro rotina:", e.message); }
         }
-    }, 300000);
+    }, 300000); 
 }
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
 
-iniciarApp().catch(err => console.error(err));
+iniciarApp().catch(err => console.error("Falha ao iniciar:", err));
