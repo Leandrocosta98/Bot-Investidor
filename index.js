@@ -13,14 +13,21 @@ const app = express();
 // --- CONFIGURAÇÕES ---
 app.use(express.json()); // Para aceitar JSON no corpo das requisições
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public')); // Serve os arquivos da pasta public (HTML, CSS, JS)
+ 
 
 app.use(session({
+    name: 'sessao_bot', // Nome personalizado para o cookie
     secret: 'Previdencia-Garantida-2024',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false } // Em produção (HTTPS), seria true
+    resave: true, // Força a gravar a sessão mesmo sem modificação
+    saveUninitialized: true, // Força a criar uma sessão nova
+    cookie: { 
+        secure: false, // Obrigatório como false para localhost (sem HTTPS)
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 24 // 24 horas
+    }
 }));
+
+app.use(express.static('public')); // Serve os arquivos da pasta public (HTML, CSS, JS)
 
 // --- FUNÇÕES AUXILIARES ---
 async function openDb() {
@@ -85,17 +92,26 @@ app.get('/api/logout', (req, res) => {
 
 // --- API DE DADOS (DASHBOARD) ---
 
-app.get('/api/dados', verificarLogin, async (req, res) => {
-    try {
-        const db = await openDb();
-        // Agora buscamos apenas as ações do usuário logado
-        const acoes = await db.all(`SELECT * FROM watchlist WHERE usuario_id = ?`, [req.session.usuarioId]);
-        res.json(acoes);
-    } catch (error) {
-        res.status(500).json({ erro: "Erro ao buscar dados." });
+// Rota para o nome do usuário
+app.get('/api/dados-usuario', (req, res) => {
+    if (req.session && req.session.usuarioNome) {
+        res.json({ nome: req.session.usuarioNome });
+    } else {
+        res.status(401).json({ erro: "Não logado" });
     }
 });
 
+// Rota para a lista de dados
+app.get('/api/dados', async (req, res) => {
+    try {
+        const db = await openDb();
+        const acoes = await db.all(`SELECT * FROM watchlist ORDER BY id DESC`);
+        res.json(acoes); // Garante que SEMPRE envia um JSON, mesmo que seja []
+    } catch (error) {
+        console.error("Erro na rota /api/dados:", error);
+        res.status(500).json({ erro: "Erro no banco de dados" });
+    }
+});
 app.get('/api/historico/:ticker', verificarLogin, async (req, res) => {
     const { ticker } = req.params;
     try {
@@ -107,10 +123,10 @@ app.get('/api/historico/:ticker', verificarLogin, async (req, res) => {
     }
 });
 
-app.delete('/api/deletar/:id', verificarLogin, async (req, res) => {
+app.delete('/api/deletar/:id', async (req, res) => {
     try {
         const db = await openDb();
-        await db.run(`DELETE FROM watchlist WHERE id = ? AND usuario_id = ?`, [req.params.id, req.session.usuarioId]);
+        await db.run(`DELETE FROM watchlist WHERE id = ?`, [req.params.id]);
         res.json({ mensagem: "Removido!" });
     } catch (error) {
         res.status(500).json({ erro: "Erro ao deletar." });
@@ -146,27 +162,52 @@ async function iniciarApp() {
 
     console.log("✅ Banco e Tabelas prontos!");
 
-    // Comandos do Bot (Simplificado)
+    // Comando /monitorar detalhado
     bot.onText(/\/monitorar (.+) (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;
         const ticker = match[1].toUpperCase();
         const quedaAlvo = parseFloat(match[2]);
 
+        bot.sendMessage(chatId, `🔍 Buscando preço atual de ${ticker}...`);
+
         try {
             const url = `https://brapi.dev/api/quote/${ticker}?token=${BRAPI_TOKEN}`;
             const res = await axios.get(url);
             const precoBase = res.data.results[0].regularMarketPrice;
+            const precoAlvo = precoBase * (1 - (quedaAlvo / 100));
 
-            // Nota: No Bot, o usuario_id ficaria nulo a menos que você vincule o chatId ao usuario
             await db.run(
-                `INSERT INTO watchlist (chatId, ticker, precoBase, limiteQueda) VALUES (?, ?, ?, ?)`,
-                [chatId, ticker, precoBase, quedaAlvo / 100]
+            `INSERT INTO watchlist (chatId, ticker, precoBase, limiteQueda) VALUES (?, ?, ?, ?)`,
+            [chatId, ticker, precoBase, quedaAlvo / 100]
             );
 
-            bot.sendMessage(chatId, `✅ Monitorando ${ticker}! R$ ${precoBase}`);
-        } catch (e) {
-            bot.sendMessage(chatId, `❌ Erro ao buscar ação.`);
+            bot.sendMessage(chatId, `✅ Monitorando ${ticker}!\n💰 Preço base: R$ ${precoBase.toFixed(2)}\n📉 Alerta em: R$ ${precoAlvo.toFixed(2)} (-${quedaAlvo}%)`);
+
+        } 
+        catch (error) {
+            bot.sendMessage(chatId, `❌ Erro: Não encontrei a ação ${ticker}.`);
         }
+    });
+
+    // Comando /lista detalhado
+    bot.onText(/\/lista/, async (msg) => {
+        const chatId = msg.chat.id;
+        const acoes = await db.all(`SELECT * FROM watchlist WHERE chatId = ?`, [chatId]);
+
+        if (acoes.length === 0) {
+            bot.sendMessage(chatId, "📋 Sua lista de monitoramento está vazia.");
+            return;
+        }
+
+        let resposta = "📋 *Ações em Vigilância:*\n\n";
+        acoes.forEach((acao) => {
+            const precoAlvo = acao.precoBase * (1 - acao.limiteQueda);
+            resposta += `📈 *${acao.ticker}*\n`;
+            resposta += `💰 Base: R$ ${acao.precoBase.toFixed(2)}\n`;
+            resposta += `🚨 Alerta: R$ ${precoAlvo.toFixed(2)}\n\n`;
+        });
+
+     bot.sendMessage(chatId, resposta, { parse_mode: 'Markdown' });
     });
 
     // Verificação periódica
