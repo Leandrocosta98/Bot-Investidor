@@ -10,6 +10,7 @@
     <script src="dashboard.js"></script>
 
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -20,55 +21,65 @@
         </header>
 
         <nav class="navbar">
-    <div class="logo">Monitoramento de Ativos 📈</div>
-    <div class="menu-items">
-        <button onclick="mudarPeriodo('7d')">7 Dias</button>
-        <button onclick="mudarPeriodo('30d')">1 Mês</button>
-        <button onclick="mudarPeriodo('1y')">1 Ano</button>
-        <a href="/api/logout" class="btn-logout">Sair</a>
-    </div>
-</nav>
-
-<div class="cards-container">
-    <div class="card">
-        <h3>Total Ativos</h3>
-        <p id="total-ativos">0</p>
-    </div>
-    <div class="card alta">
-        <h3>Maior Alta (24h)</h3>
-        <p id="maior-alta">--</p>
-    </div>
-    <div class="card queda">
-        <h3>Maior Queda (24h)</h3>
-        <p id="maior-queda">--</p>
-    </div>
-</div>
-
-<div class="main-content">
-    <div class="lista-secao">
-        <h2>Meus Ativos</h2>
-        <div class="tabela-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>Ticker</th>
-                    <th>Base</th>
-                    <th>Alvo</th>
-                    <th>Ações</th>
-                </tr>
-                </thead>
-                <tbody id="corpo-tabela"></tbody>
-            </table>
-        </div>
+            <div class="logo">Minha Previdência</div>
         
-    </div> <div class="grafico-secao">
-        <h2 id="titulo-grafico">Desempenho</h2>
-        <div class="chart-container">
-            <canvas id="meuGrafico"></canvas>
+            <div class="menu-toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+
+            <ul class="nav-menu">
+                <li><a href="#" onclick="carregarDados()">🔄 Atualizar</a></li>
+                <li><a href="/api/logout" class="btn-sair-link">🚪 Sair</a></li>
+            </ul>
+        </nav>
+
+        <div class="cards-container">
+            <div class="card">
+                <h3>Total Ativos</h3>
+                <p id="total-ativos">0</p>
+            </div>
+
+            <div class="card alta">
+                <h3>Maior Alta (24h)</h3>
+                <p id="maior-alta">--</p>
+            </div>
+
+            <div class="card queda">
+                <h3>Maior Queda (24h)</h3>
+                <p id="maior-queda">--</p>
+            </div>
+
         </div>
-    </div>
-</div>
-</div>
+
+        <div class="main-content">
+            <div class="lista-secao">
+                <h2>Meus Ativos</h2>
+                <div class="tabela-container">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Base</th>
+                            <th>Alvo</th>
+                            <th>Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody id="corpo-tabela"></tbody>
+                    </table>
+                </div>
+                
+            </div> 
+
+            <div class="grafico-secao">
+                <h2 id="titulo-grafico">Desempenho</h2>
+
+                <div class="chart-container">
+                    <canvas id="meuGrafico"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
 </body>

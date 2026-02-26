@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     alert("✅ Conta criada com sucesso!");
-                    window.location.href = "/login"; // Manda para o login
+                    window.location.href = "/login";
                 } else {
                     alert("❌ Erro: " + (data.erro || "Não foi possível cadastrar."));
                 }

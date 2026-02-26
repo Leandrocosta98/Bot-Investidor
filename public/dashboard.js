@@ -1,7 +1,7 @@
 // 1. Variáveis globais
 let chartInstancia = null;
-let periodoAtual = '7d'; // Padrão inicial
-window.tickerAtivo = ''; // Para saber qual gráfico atualizar ao mudar o período
+let periodoAtual = '7d';
+window.tickerAtivo = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Iniciando Dashboard...");
@@ -26,14 +26,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+    const menu = document.querySelector('#mobile-menu');
+    const menuLinks = document.querySelector('.nav-menu');
+
+    menu.addEventListener('click', () => {
+        menu.classList.toggle('is-active'); // Animação opcional
+        menuLinks.classList.toggle('active'); // Abre/Fecha o menu
+    });
+});
+
 // --- FUNÇÕES DE LÓGICA ---
 
-// Função chamada pelos botões do Menu (7d, 30d, 1y)
+// Função chamada pelos botões do Menu
 async function mudarPeriodo(range) {
     periodoAtual = range;
     console.log("Mudando período para:", range);
     
-    // Se já tiver um ticker selecionado, atualiza o gráfico dele
     if (window.tickerAtivo) {
         carregarGrafico(window.tickerAtivo);
     }else {
@@ -42,7 +51,7 @@ async function mudarPeriodo(range) {
 }
 
 async function carregarGrafico(ticker) {
-    window.tickerAtivo = ticker; // Salva o ticker atual
+    window.tickerAtivo = ticker;
     console.log(`Buscando histórico de ${ticker} no período ${periodoAtual}`);
     
     const tituloGrafico = document.getElementById('titulo-grafico');
@@ -106,7 +115,7 @@ async function carregarDados() {
         const resposta = await fetch('/api/dados');
         const dados = await resposta.json();
 
-        // Atualiza Cards
+        // Atualizar os Cards
         const totalAtivosEl = document.getElementById('total-ativos');
         const maiorQuedaEl = document.getElementById('maior-queda');
         const maiorAltaEl = document.getElementById('maior-alta');
@@ -121,7 +130,7 @@ async function carregarDados() {
             if (maiorAltaEl) maiorAltaEl.innerText = dados[0].ticker;
         }
 
-        // Preenche Tabela
+        // Preencher as Tabela
         if (!tbody) return;
         tbody.innerHTML = ""; 
 

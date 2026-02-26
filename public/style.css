@@ -1,4 +1,4 @@
-/* --- RESET E BASE --- */
+/* --- Estilo do DASHBOARD --- */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -47,21 +47,21 @@ body {
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
-    width: 200px;       /* Um pouco maior como você queria */
-    margin: 10px 0 40px 0; /* O segredo do espaço: 40px de margem inferior */
+    width: 200px;      
+    margin: 10px 0 40px 0; 
     transition: 0.2s;
-    display: inline-block; /* Troque block por inline-block */
+    display: inline-block; 
 }
 
 .btn-refresh:hover {
     background: #00cc6e;
-    transform: translateY(-2px); /* Efeito mais suave que o scale */
+    transform: translateY(-2px); 
 }
 
 
-/* Botões do Menu (7d, 30d, etc) */
+/* Botões do Menu */
 .menu-items button {
-    width: auto; /* Remove o 100% que estava no seletor global */
+    width: auto; 
     padding: 8px 15px;
     background: #252525;
     color: #00ff88;
@@ -98,13 +98,13 @@ body {
 
 .tabela-container {
     width: 100%;
-    overflow-x: auto; /* Cria o scroll lateral apenas na tabela se for necessário */
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
 
 table {
     width: 100%;
-    min-width: 500px; /* Força a tabela a manter um tamanho legível */
+    min-width: 500px;
 }
 
 @media (max-width: 600px) {
@@ -113,11 +113,11 @@ table {
     }
 
     h1 {
-        font-size: 1.5rem; /* Diminui o título no celular */
+        font-size: 1.5rem;
     }
 
     .monitoramento-controles {
-        flex-direction: column; /* Botões de 7 dias, 1 mês ficam um sobre o outro */
+        flex-direction: column;
         align-items: stretch;
     }
     
@@ -172,26 +172,27 @@ table {
 }
 
 .lista-secao {
-    flex: 0 0 400px; /* Tabela fica com largura fixa de 400px */
+    flex: 0 0 400px;
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
 }
 
 .grafico-secao {
-    flex: 1; /* Gráfico estica para ocupar o resto da tela */
+    flex: 1;
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
-    min-width: 0; /* Impede que o canvas quebre o layout */
+    min-width: 0;
 }
 .chart-container {
     height: 450px;
     width: 100%;
-    position: relative; /* Ajuda o Chart.js a se localizar */
+    position: relative;
 }
 
-/* --- TABELA --- */
+/* --- ESTILO DA TABELA --- */
+
 table { 
     width: 100%;
     border-collapse: collapse;
@@ -236,7 +237,7 @@ td button:hover {
     background: none;
 }
 
-/* --- LOGIN E INPUTS (Mantidos para compatibilidade) --- */
+/* --- LOGIN E INPUTS --- */
 input { 
     width: 100%;
     padding: 12px;
@@ -249,3 +250,64 @@ input {
 }
 
 h2 { color: #00ff88; }
+
+/* Estilo Base da Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1a1a;
+    padding: 1rem 2rem;
+    color: white;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 20px;
+}
+
+.nav-menu a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Esconder hambúrguer no Desktop */
+.menu-toggle {
+    display: none;
+    cursor: pointer;
+}
+
+.bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    margin: 5px auto;
+    background-color: white;
+    transition: 0.3s;
+}
+
+/* --- ESTILO MOBILE --- */
+@media (max-width: 768px) {
+    .menu-toggle { display: block; }
+
+    .nav-menu {
+        position: fixed;
+        left: -100%; /* Escondido fora da tela */
+        top: 70px;
+        flex-direction: column;
+        background-color: #1a1a1a;
+        width: 100%;
+        text-align: center;
+        transition: 0.3s;
+        box-shadow: 0 10px 27px rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+    }
+
+    .nav-menu.active {
+        left: 0; /* Mostra o menu ao clicar */
+    }
+
+    .nav-menu li { margin: 2.5rem 0; }
+}

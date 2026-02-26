@@ -20,7 +20,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, // Mantenha false para HTTP (Render/Localhost). Mude para true se usar HTTPS.
+        secure: false,
         maxAge: 1000 * 60 * 60 * 24 // 24 horas
     }
 }));
@@ -116,7 +116,6 @@ app.delete('/api/deletar/:id', verificarLogin, async (req, res) => {
     try {
         const db = await openDb();
         const userId = req.session.usuarioId;
-        // O WHERE id AND usuario_id garante que ninguém delete o ativo de outro
         await db.run(`DELETE FROM watchlist WHERE id = ? AND usuario_id = ?`, [req.params.id, userId]);
         res.json({ mensagem: "Removido!" });
     } catch (error) {
@@ -165,7 +164,7 @@ async function iniciarApp() {
     // 2. Garante que a coluna de vínculo existe
     try {
         await db.run("ALTER TABLE usuarios ADD COLUMN telegram_chat_id TEXT");
-    } catch (e) { /* Coluna já existe */ }
+    } catch (e) {}
 
     console.log("✅ Banco de dados pronto!");
 
@@ -207,7 +206,7 @@ async function iniciarApp() {
         }
     });
 
-    // 2. LISTA (Individual)
+    // 2. LISTA
     bot.onText(/\/lista/, async (msg) => {
         const chatId = msg.chat.id;
         try {
