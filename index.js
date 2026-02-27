@@ -170,6 +170,42 @@ async function iniciarApp() {
 
     // --- COMANDOS DO BOT ---
 
+    // CONHECENDO O BOT
+    bot.onText(/\/start/, (msg) => {
+        const chatId = msg.chat.id;
+        const boasVindas = `👋 *Bem-vindo ao Bot de Monitoramento!*\n\n` +
+            `Eu te ajudo a vigiar o mercado financeiro e te aviso quando uma ação cair até o teu preço alvo.\n\n` +
+            `🚀 *Guia Rápido:* \n\n` +
+            `1️⃣ **Criar sua conta:**\n` +
+            `Primeiro, entre no site e faça o seu cadastro: https://bot-investidor.onrender.com \n\n` +
+            `2️⃣**Vincular a tua conta:**\n` +
+            `Usa o e-mail que usaste no site:\n` +
+            `\`digite o comando /vincular + teu@email.com\`\n\n` +
+            `3️⃣ **Começa a monitorar:**\n` +
+            `Define o ticker e a % de queda:\n` +
+            `\`EX: digite o comando/monitorar, junto com o codigo da ação em letras minusculas ex: petr5 depois digite quantos % o bot vai te avisar por ex: 5\`\n\n` +
+            `\`Veja um ex completo: /monitorar petr5 5\`\n\n`+
+            `3️⃣ **Vê a tua lista:**\n` +
+            `Confere o que estou a vigiar:\n` +
+            `\`/lista\`\n\n` +
+            `💡 Precisas de mais detalhes? Digita \`/ajuda\``;
+
+        bot.sendMessage(chatId, boasVindas, { parse_mode: 'Markdown' });
+    });
+
+    // COMANDO DE AJUDA
+    bot.onText(/\/ajuda/, (msg) => {
+        const chatId = msg.chat.id;
+        const ajuda = `📖 *Manual de Comandos*\n\n` +
+            `🔹 \`/vincular [email]\` \nConecta o Telegram à tua conta na plataforma web.\n\n` +
+            `🔹 \`/monitorar [ticker] [queda]\` \nEx: \`/monitorar VALE3 3.5\`. O bot busca o preço atual e calcula o alerta.\n\n` +
+            `🔹 \`/lista\` \nMostra todos os teus ativos monitorados e os preços alvo.\n\n` +
+            `🔹 \`/limpar\` \nRemove todos os ativos da tua lista de monitorização.\n\n` +
+            `⚠️ *Importante:* Os alertas são verificados a cada 5 minutos.`;
+
+        bot.sendMessage(chatId, ajuda, { parse_mode: 'Markdown' });
+    });
+
     // 1. MONITORAR (Individual e Tagarela)
     bot.onText(/\/monitorar (.+) (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;

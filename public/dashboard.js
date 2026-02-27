@@ -27,12 +27,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    const menu = document.querySelector('#mobile-menu');
-    const menuLinks = document.querySelector('.nav-menu');
+    const menuToggle = document.getElementById('mobile-menu');
+    const navMenu = document.getElementById('nav-menu');
 
-    menu.addEventListener('click', () => {
-        menu.classList.toggle('is-active'); // Animação opcional
-        menuLinks.classList.toggle('active'); // Abre/Fecha o menu
+    menuToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('active');
+        
+        // Opcional: Animação do hambúrguer virando X
+        menuToggle.classList.toggle('is-active');
+    });
+
+    // Fecha o menu ao clicar em qualquer botão dentro dele
+    const menuButtons = document.querySelectorAll('.menu-items button, .btn-logout');
+    menuButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            navMenu.classList.remove('active');
+        });
     });
 });
 
@@ -115,7 +125,7 @@ async function carregarDados() {
         const resposta = await fetch('/api/dados');
         const dados = await resposta.json();
 
-        // Atualizar os Cards
+        // Atualizar Cards
         const totalAtivosEl = document.getElementById('total-ativos');
         const maiorQuedaEl = document.getElementById('maior-queda');
         const maiorAltaEl = document.getElementById('maior-alta');

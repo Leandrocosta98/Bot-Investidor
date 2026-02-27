@@ -1,4 +1,4 @@
-/* --- Estilo do DASHBOARD --- */
+/* --- RESET E BASE --- */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -12,15 +12,24 @@ body {
     line-height: 1.6;
 }
 
+.header h1 {
+    text-align: center;
+}
+
 /* --- NAVBAR --- */
 .navbar {
     display: flex;
+    margin-bottom: 10px;
     justify-content: space-between;
     align-items: center;
     background: #1e1e1e;
     color: white;
     padding: 15px 30px;
-    border-bottom: 2px solid #333;
+    border-bottom: 5px solid #333;
+    border-radius: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .logo {
@@ -29,44 +38,38 @@ body {
     color: #00ff88;
 }
 
+/* Estilo dos Botões do Menu (Desktop) */
 .menu-items {
     display: flex;
     gap: 10px;
-}
-
-.header {
     align-items: center;
-
 }
 
 .btn-refresh {
-    background: #00ff88;
-    color: #121212;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    margin-bottom: 12px;
+    background: #252525;
+    color: #00ff88;
+    border: 1px solid #00ff88;
+    font-size: 14px;
     cursor: pointer;
     font-weight: bold;
-    width: 200px;      
-    margin: 10px 0 40px 0; 
-    transition: 0.2s;
-    display: inline-block; 
+    border-radius: 6px;
+    transition: 0.3s;
 }
 
-.btn-refresh:hover {
-    background: #00cc6e;
-    transform: translateY(-2px); 
-}
-
-
-/* Botões do Menu */
 .menu-items button {
-    width: auto; 
     padding: 8px 15px;
     background: #252525;
     color: #00ff88;
     border: 1px solid #00ff88;
     font-size: 14px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 6px;
+    transition: 0.3s;
 }
 
 .menu-items button:hover {
@@ -82,6 +85,7 @@ body {
     border: 1px solid #ff4d4d;
     border-radius: 6px;
     transition: 0.3s;
+    font-weight: bold;
 }
 
 .btn-logout:hover {
@@ -89,55 +93,39 @@ body {
     color: white;
 }
 
-/* --- LAYOUT PRINCIPAL --- */
+/* Hambúrguer (Escondido no PC) */
+.menu-toggle {
+    display: none; 
+    cursor: pointer;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.bar {
+    width: 25px;
+    height: 3px;
+    background-color: #00ff88;
+    transition: 0.3s;
+}
+
+/* --- LAYOUT E CARDS --- */
 .container {
     max-width: 1300px;
     margin: 0 auto;
     padding: 20px;
 }
 
-.tabela-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-table {
-    width: 100%;
-    min-width: 500px;
-}
-
-@media (max-width: 600px) {
-    body {
-        padding: 10px;
-    }
-
-    h1 {
-        font-size: 1.5rem;
-    }
-
-    .monitoramento-controles {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .card {
-        margin-bottom: 10px;
-    }
-}
-
-/* --- CARDS DE RESUMO --- */
 .cards-container {
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
     justify-content: center;
+    margin-bottom: 20px;
 }
 
 .card {
     flex: 1 1 300px;
     min-width: 250px;
-    max-width: 100%;
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
@@ -146,168 +134,81 @@ table {
     border-bottom: 4px solid #00ff88;
 }
 
-.card h3 {
-    font-size: 0.9rem;
-    color: #888;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-}
-
-.card p {
-    font-size: 1.5rem;
-    font-weight: bold;
-}
-
-.alta { border-bottom-color: #2ecc71; }
-.queda { border-bottom-color: #e74c3c; }
-
-/* --- SEÇÃO LADO A LADO --- */
+/* --- TABELA E GRÁFICO --- */
 .main-content {
-    display: flex !important;
-    flex-direction: row;
-    align-items: flex-start;
+    display: flex;
     gap: 20px;
-    width: 100%;
     margin-top: 20px;
 }
 
-.lista-secao {
+.lista-secao { 
     flex: 0 0 400px;
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
 }
 
-.grafico-secao {
-    flex: 1;
+.grafico-secao { flex: 1;
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
-    min-width: 0;
 }
-.chart-container {
-    height: 450px;
+
+.tabela-container {
     width: 100%;
-    position: relative;
+    overflow-x: auto;
 }
 
-/* --- ESTILO DA TABELA --- */
-
-table { 
+table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    min-width: 500px;
 }
-    
-th, td { 
+
+th, td {
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #333;
 }
-        
+
 th {
     color: #00ff88;
     font-size: 12px;
-    letter-spacing: 1px;
-}
-        
-tr:hover {
-    background: #252525;
 }
 
-/* --- BOTÕES GERAIS --- */
-button {
-    cursor: pointer;
-    font-weight: bold;
-    border-radius: 6px;
-    border: none;
-    transition: 0.3s;
-}
-
-/* Estilo para o botão de deletar (lixeira) na tabela */
-td button {
-    background: none;
-    font-size: 18px;
-    padding: 5px;
-    width: auto;
-}
-
-td button:hover {
-    transform: scale(1.2);
-    background: none;
-}
-
-/* --- LOGIN E INPUTS --- */
-input { 
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border-radius: 6px;
-    border: 1px solid #333;
-    background: #252525;
-    color: white;
-    box-sizing: border-box;
-}
-
-h2 { color: #00ff88; }
-
-/* Estilo Base da Navbar */
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1a1a1a;
-    padding: 1rem 2rem;
-    color: white;
-}
-
-.nav-menu {
-    display: flex;
-    list-style: none;
-    gap: 20px;
-}
-
-.nav-menu a {
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-/* Esconder hambúrguer no Desktop */
-.menu-toggle {
-    display: none;
-    cursor: pointer;
-}
-
-.bar {
-    display: block;
-    width: 25px;
-    height: 3px;
-    margin: 5px auto;
-    background-color: white;
-    transition: 0.3s;
-}
-
-/* --- ESTILO MOBILE --- */
+/* --- RESPONSIVIDADE (MOBILE) --- */
 @media (max-width: 768px) {
-    .menu-toggle { display: block; }
+    .main-content { flex-direction: column; }
+    .lista-secao { flex: 1; width: 100%; }
 
-    .nav-menu {
-        position: fixed;
-        left: -100%; /* Escondido fora da tela */
-        top: 70px;
+    .menu-toggle {
+        display: flex; /* Mostra o ícone no celular */
+    }
+
+    .menu-items {
+        display: flex;
         flex-direction: column;
-        background-color: #1a1a1a;
-        width: 100%;
+        position: fixed;
+        right: -100%; /* Escondido */
+        top: 0;
+        background: #1a1a1a;
+        width: 260px;
+        height: 100vh;
+        padding-top: 80px;
+        transition: 0.4s ease;
+        z-index: 999; 
+        box-shadow: -10px 0 30px rgba(0,0,0,0.7);
+    }
+
+    /* ESSA É A REGRA CHAVE */
+    .menu-items.active {
+        right: 0 !important;
+    }
+
+    .menu-items button, .btn-logout {
+        width: 85% !important;
+        margin: 10px auto !important;
+        display: block !important;
         text-align: center;
-        transition: 0.3s;
-        box-shadow: 0 10px 27px rgba(0, 0, 0, 0.5);
-        z-index: 1000;
     }
-
-    .nav-menu.active {
-        left: 0; /* Mostra o menu ao clicar */
-    }
-
-    .nav-menu li { margin: 2.5rem 0; }
 }
