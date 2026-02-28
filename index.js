@@ -53,7 +53,6 @@ app.get('/cadastro', (req, res) => res.sendFile(path.join(__dirname, 'public', '
 app.get('/', verificarLogin, (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 
 // --- API DE AUTENTICAÇÃO ---
-
 app.post('/api/cadastro', async (req, res) => {
     const { nome, email, senha } = req.body;
     try {
@@ -207,6 +206,9 @@ async function iniciarApp() {
     });
 
     // 1. MONITORAR (Individual e Tagarela)
+    const {calcularPrecoAlvo} = require('./src/services/financeService');
+    const {adicionarAtivo} = require('./src/repositories/watchlistRepository');
+
     bot.onText(/\/monitorar (.+) (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;
         const ticker = match[1].toUpperCase();
@@ -225,19 +227,19 @@ async function iniciarApp() {
             const url = `https://brapi.dev/api/quote/${ticker}?token=${process.env.BRAPI_TOKEN}`;
             const res = await axios.get(url);
             
-            if (!res.data.results || res.data.results.length === 0) throw new Error();
+            if (!res.data.results || res.data.results.length === 0) {
+                return bot.sendMessage(chatId, `Ativo ${ticker} não encontrado.`);
+            }
 
             const precoBase = res.data.results[0].regularMarketPrice;
-            const precoAlvo = precoBase * (1 - (quedaAlvo / 100));
+            const precoAlvo = calcularPrecoAlvo(precoBase,quedaAlvo);
 
-            await db.run(
-                `INSERT INTO watchlist (chatId, ticker, precoBase, limiteQueda, usuario_id) VALUES (?, ?, ?, ?, ?)`,
-                [chatId, ticker, precoBase, quedaAlvo / 100, usuario.id]
-            );
+            await adicionarAtivo(db, {chatId, ticker, precoBase, quedaAlvo, usuarioId: usuario.id});
 
             bot.sendMessage(chatId, `✅ *Monitoramento Ativado para ${usuario.nome}!*\n\n📈 *Ativo:* ${ticker}\n💰 *Preço Atual:* R$ ${precoBase.toFixed(2)}\n🚨 *Alerta em:* R$ ${precoAlvo.toFixed(2)} (-${quedaAlvo}%)\n\n_Vou te avisar assim que cair!_ 🚀`, { parse_mode: 'Markdown' });
 
         } catch (error) {
+            console.error("DEBUG ERROR:", error);
             bot.sendMessage(chatId, `❌ *Erro:* Não encontrei a ação *${ticker}*.`);
         }
     });

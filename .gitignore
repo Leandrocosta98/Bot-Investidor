@@ -7,7 +7,10 @@ node_modules/
 # Banco de dados local (Para não sobrescrever o do Render)
 *.db
 *.db-journal
+*.sqlite
+database.db
 
 # Logs e arquivos de sistema
 npm-debug.log*
+*.log
 .DS_Store
